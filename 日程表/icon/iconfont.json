@@ -1,0 +1,30 @@
+{
+  "id": "",
+  "name": "",
+  "font_family": "iconfont",
+  "css_prefix_text": "icon-",
+  "description": "",
+  "glyphs": [
+    {
+      "icon_id": "43696478",
+      "name": "新增",
+      "font_class": "xinzeng",
+      "unicode": "e77a",
+      "unicode_decimal": 59258
+    },
+    {
+      "icon_id": "43696479",
+      "name": "删除",
+      "font_class": "shanchu",
+      "unicode": "e77b",
+      "unicode_decimal": 59259
+    },
+    {
+      "icon_id": "43697315",
+      "name": "列表",
+      "font_class": "liebiao",
+      "unicode": "e79d",
+      "unicode_decimal": 59293
+    }
+  ]
+}

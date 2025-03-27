@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <title>简易记事本</title>
+    <link rel="stylesheet" href="css1.css">
+    <link rel="stylesheet" href="https://at.alicdn.com/t/c/font_4872150_jkcd7rp5ski.css">
+
+</head>
+
+<body>
+    <!-- 右侧导航栏 -->
+    <div class="nav">
+        <span><a href="#" onclick="toggleAllComplete()" title="一键完成">
+                <h3 class="iconfont icon-queren"></h3>
+
+            </a></span>
+        <span><a href="#" onclick="clearAll()" title="清除全部">
+                <h3 class="iconfont icon-quxiao"></h3>
+            </a></span>
+        <span><a href="#recycle">
+                <h3 class="iconfont icon-shanchu" title="回收站"></h3>
+            </a></span>
+        <span><a href="#top1">
+                <h3 class="iconfont icon-Gc_17_public-TopOutlined" style="font-size: 20px !important;" title="回到顶部">
+                </h3>
+            </a></span>
+    </div>
+
+
+    <!-- notebook图标 -->
+    <div class="icon" id="top1"><img src="notebook.png"></div>
+
+    <!-- 新建代办 -->
+    <div class="input-area">
+        <h3 class="iconfont icon-xinzeng" style="font-size: 18.72px;">新建记事</h3>
+        <input type="text" id="title" placeholder="输入标题">
+        <textarea id="content" placeholder="输入内容"></textarea>
+        <div class="put_button">
+            <button onclick="addNote()">添加笔记</button>
+            <button onclick="toggleAllComplete()">一键完成</button>
+            <button onclick="clearAll()" style="background: #f44336;">清除全部</button>
+        </div>
+
+        <!-- 代办列表 -->
+        <h3 class="wait iconfont icon-liebiao " style="font-size: 18.72px;">待办记事</h3>
+        <div id="notes-list"></div>
+
+
+
+
+        <!-- 回收站 -->
+        <div id="recycle-bin">
+            <h3 id="recycle">
+                <i class="iconfont icon-shanchu" style="font-weight: 700;font-size: 19px;"></i>回收站（双击恢复）
+            </h3>
+            <div id="trash-list"></div>
+        </div>
+    </div>
+
+    <script>
+        let notes = JSON.parse(localStorage.getItem('notes')) || [];
+        let trash = JSON.parse(localStorage.getItem('trash')) || [];
+
+        // 初始化渲染
+        renderNotes();
+        renderTrash();
+
+        function Note(title, content) {
+            return {
+                id: Date.now(),
+                title: title,
+                content: content,
+                isCompleted: false,
+                createdAt: new Date().toISOString()
+            }
+        }
+
+        function addNote() {
+            const title = document.getElementById('title').value;
+            const content = document.getElementById('content').value;
+
+            if (!title.trim()) {
+                alert('请输入标题');
+                return;
+            }
+
+            const newNote = new Note(title, content);
+            notes.unshift(newNote);
+            saveToLocal();
+            renderNotes();
+
+            // 清空输入
+            document.getElementById('title').value = '';
+            document.getElementById('content').value = '';
+        }
+
+        function deleteNote(id, isTrash = true) {
+            const index = notes.findIndex(note => note.id === id);
+            if (index === -1) return;
+
+            const [deletedNote] = notes.splice(index, 1);
+            if (isTrash) {
+                trash.push(deletedNote);
+                saveTrash();
+            }
+
+            saveToLocal();
+            renderNotes();
+            renderTrash();
+        }
+
+        function editNote(id) {
+            const note = notes.find(n => n.id === id);
+            const newTitle = prompt('修改标题', note.title);
+            const newContent = prompt('修改内容', note.content);
+
+            if (newTitle !== null) note.title = newTitle;
+            if (newContent !== null) note.content = newContent;
+
+            saveToLocal();
+            renderNotes();
+        }
+
+        function toggleComplete(id) {
+            const note = notes.find(n => n.id === id);
+            note.isCompleted = !note.isCompleted;
+            saveToLocal();
+            renderNotes();
+        }
+
+        function toggleAllComplete() {
+            if (confirm('确定已经完成所有任务了吗？')) {
+                notes.forEach(note => note.isCompleted = true);
+                saveToLocal();
+                renderNotes();
+            }
+
+        }
+
+        function clearAll() {
+            if (confirm('确定要清除所有笔记吗？')) {
+                notes = [];
+                saveToLocal();
+                renderNotes();
+            }
+        }
+
+        function restoreNote(id) {
+            const index = trash.findIndex(note => note.id === id);
+            if (index === -1) return;
+
+            const [restoredNote] = trash.splice(index, 1);
+            notes.unshift(restoredNote);
+
+            saveToLocal();
+            saveTrash();
+            renderNotes();
+            renderTrash();
+        }
+
+        function renderNotes() {
+            const container = document.getElementById('notes-list');
+            container.innerHTML = notes.map(note => `
+                    <div class="note ${note.isCompleted ? 'completed' : ''}" data-id="${note.id}">
+                        <h3>${note.title}</h3>
+                        <p>${note.content}</p >
+                        <div class="note-buttons">
+                            <button onclick="toggleComplete(${note.id})">
+                                ${note.isCompleted ? '取消完成' : '标记完成'}
+                            </button>
+                            <button onclick="editNote(${note.id})">编辑</button>
+                            <button onclick="deleteNote(${note.id})" style="background: #ff9800;">删除</button>
+                        </div>
+                        <small>创建时间：${new Date(note.createdAt).toLocaleString()}</small>
+                    </div>
+                `).join('');
+        }
+
+        function renderTrash() {
+            const container = document.getElementById('trash-list');
+            container.innerHTML = trash.map(note => `
+                    <div class="note" data-id="${note.id}" ondblclick="restoreNote(${note.id})">
+                        <h3>${note.title}</h3>
+                        <p>${note.content}</p >
+                        <small>删除时间：${new Date().toLocaleString()}</small>
+                    </div>
+                `).join('');
+        }
+
+        function saveToLocal() {
+            localStorage.setItem('notes', JSON.stringify(notes));
+        }
+
+        function saveTrash() {
+            localStorage.setItem('trash', JSON.stringify(trash));
+        }
+    </script>
+</body>
+
+</html>
