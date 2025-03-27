@@ -1,0 +1,130 @@
+* {
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background-image: url(bg.jpg);
+}
+
+body {
+    font-family: Arial, sans-serif;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.input-area {
+    margin-bottom: 20px;
+    background: #f5f5f5;
+    padding: 15px;
+    border-radius: 8px;
+}
+
+input[type="text"],
+textarea {
+    width: 98%;
+    padding: 8px;
+    margin: 5px 0;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    resize: none;
+}
+
+button {
+    background: #4CAF50;
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    margin: 5px;
+}
+
+button:hover {
+    opacity: 0.8;
+}
+
+.note {
+    background: white;
+    border: 1px solid #ddd;
+    padding: 15px;
+    margin: 10px 0;
+    border-radius: 8px;
+    position: relative;
+}
+
+.note.completed {
+    background: #f0f0f0;
+    text-decoration: line-through;
+}
+
+.note-buttons {
+    margin-top: 10px;
+}
+
+#recycle-bin {
+    margin-top: 30px;
+    border-top: 2px solid #ccc;
+    padding-top: 20px;
+}
+
+
+
+.icon {
+    width: 400px;
+    height: 70px;
+    margin: 50px auto;
+
+}
+
+.icon img {
+    margin-top: -60px;
+    width: 400px;
+
+}
+
+.wait {
+
+    margin-top: 20px;
+}
+
+.nav {
+    position: fixed;
+    right: 10px;
+    bottom: 50%;
+    width: 42px;
+    height: 201px;
+    margin-bottom: -250px;
+
+}
+
+.nav span {
+    display: block;
+    width: 40px;
+    height: 40px;
+    border: 1px solid rgb(87, 70, 73);
+    margin-bottom: 6px;
+    border-radius: 10px;
+    background-color: #fff;
+}
+
+.nav span a {
+    display: block;
+    width: 40px;
+    height: 40px;
+
+
+    line-height: 40px;
+    text-align: center;
+    text-decoration: none;
+    color: rgb(146, 173, 184);
+}
+
+.nav span a h3 {
+    font-size: 25px;
+}
+
+.nav span a:hover {
+    color: orange;
+}
