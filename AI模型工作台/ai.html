@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI模型工作台</title>
+    <link rel="stylesheet" href="css.css">
+
+</head>
+
+<body>
+    <!-- 模型库 -->
+    <div class="model-library">
+        <h2>模型库</h2>
+        <ul class="model-list" id="modelList">
+
+        </ul>
+        <button id="addModelBtn">
+            + <span class="btn-text">添加模型</span>
+        </button>
+    </div>
+
+    <!-- 工作区 -->
+    <div class="workspace">
+        <div class="workspace-header">
+            <h2>工作台</h2>
+            <button class="add-layer-btn" id="addLayerBtn">添加层级</button>
+        </div>
+
+        <div class="layers-container" id="layersContainer">
+
+        </div>
+
+        <!-- 输入表单 -->
+        <div class="input-form">
+            <h3>输入内容</h3>
+            <div class="form-group">
+                <label for="userInput">问题/内容:</label>
+                <textarea id="userInput" rows="4" placeholder="请输入您的问题或内容..."></textarea>
+            </div>
+            <div class="form-group">
+                <label for="imageUpload">上传图片(可选):</label>
+                <input type="file" id="imageUpload" accept="image/*">
+            </div>
+            <button class="submit-btn" id="submitBtn">提交</button>
+        </div>
+    </div>
+
+    <!-- 添加模型模态框 -->
+    <div class="modal" id="addModelModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>添加新模型</h3>
+                <span class="close-modal">&times;</span>
+            </div>
+            <div class="form-group">
+                <label for="modelName">模型名称:</label>
+                <input type="text" id="modelName" placeholder="输入模型名称">
+            </div>
+            <div class="form-group">
+                <label for="modelUrl">模型URL:</label>
+                <input type="text" id="modelUrl" placeholder="输入模型URL">
+            </div>
+            <div class="form-group">
+                <label for="modelDesc">模型简介:</label>
+                <textarea id="modelDesc" rows="3" placeholder="输入模型简介"></textarea>
+            </div>
+            <div class="modal-footer">
+                <button class="cancel-btn" id="cancelAddModel">取消</button>
+                <button class="save-btn" id="saveModel">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 模型详情模态框 -->
+    <div class="modal" id="modelDetailModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="detailModelName">模型详情</h3>
+                <span class="close-modal">&times;</span>
+            </div>
+            <div class="form-group">
+                <label>URL:</label>
+                <p id="detailModelUrl"></p>
+            </div>
+            <div class="form-group">
+                <label>简介:</label>
+                <p id="detailModelDesc"></p>
+            </div>
+            <div class="modal-footer">
+                <button class="cancel-btn" id="closeDetailModal">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const initialModels = [
+            {
+                name: "openai",
+                url: "https://chat.openai.com/",
+                description: "由OpenAI开发，以强大的自然语言处理能力著称，支持多任务处理，广泛应用于对话、创作和代码生成，代表作为GPT系列模型。"
+            },
+            {
+                name: "deepseek",
+                url: "https://chat.deepseek.com/",
+                description: "深度求索公司推出的开源大模型，专注高效推理与长文本处理，支持128K上下文，适合代码、数学及复杂逻辑任务。"
+            },
+            {
+                name: "腾讯元宝",
+                url: "https://yuanbao.tencent.com/",
+                description: "腾讯推出的企业级大模型，强调安全与落地应用，支持多模态交互，适用于金融、医疗等行业场景优化。"
+            }
+        ];
+
+        let models = [...initialModels];
+        let layers = [];
+        let nextLayerId = 1;
+
+        const modelListEl = document.getElementById('modelList');
+        const layersContainerEl = document.getElementById('layersContainer');
+        const addModelBtn = document.getElementById('addModelBtn');
+        const addLayerBtn = document.getElementById('addLayerBtn');
+        const submitBtn = document.getElementById('submitBtn');
+        const userInputEl = document.getElementById('userInput');
+        const imageUploadEl = document.getElementById('imageUpload');
+
+        const addModelModal = document.getElementById('addModelModal');
+        const modelDetailModal = document.getElementById('modelDetailModal');
+        const modelNameEl = document.getElementById('modelName');
+        const modelUrlEl = document.getElementById('modelUrl');
+        const modelDescEl = document.getElementById('modelDesc');
+        const saveModelBtn = document.getElementById('saveModel');
+        const cancelAddModelBtn = document.getElementById('cancelAddModel');
+        const closeDetailModalBtn = document.getElementById('closeDetailModal');
+        const detailModelNameEl = document.getElementById('detailModelName');
+        const detailModelUrlEl = document.getElementById('detailModelUrl');
+        const detailModelDescEl = document.getElementById('detailModelDesc');
+
+        function initPage() {
+            renderModelList();
+            addLayer();
+        }
+
+        function renderModelList() {
+            modelListEl.innerHTML = '';
+
+            models.forEach((model, index) => {
+                const li = document.createElement('li');
+                li.className = 'model-item draggable';
+                li.draggable = true;
+                li.dataset.index = index;
+
+                li.innerHTML = `
+                    ${model.name}
+                    <span class="delete-model" data-index="${index}">×</span>
+                `;
+
+                li.addEventListener('dragstart', handleDragStart);
+                li.addEventListener('click', (e) => {
+                    if (!e.target.classList.contains('delete-model')) {
+                        showModelDetail(model);
+                    }
+                });
+
+                const deleteBtn = li.querySelector('.delete-model');
+                deleteBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    deleteModel(index);
+                });
+
+                modelListEl.appendChild(li);
+            });
+        }
+
+        function showModelDetail(model) {
+            detailModelNameEl.textContent = model.name;
+            detailModelUrlEl.textContent = model.url;
+            detailModelDescEl.textContent = model.description;
+            modelDetailModal.style.display = 'flex';
+        }
+
+
+        function addModel(name, url, description) {
+            models.push({ name, url, description });
+            renderModelList();
+        }
+
+
+        function deleteModel(index) {
+            models.splice(index, 1);
+            renderModelList();
+        }
+
+
+        function addLayer() {
+            const layerId = nextLayerId++;
+            layers.push({
+                id: layerId,
+                models: []
+            });
+
+            renderLayers();
+        }
+
+
+        function deleteLayer(layerId) {
+            layers = layers.filter(layer => layer.id !== layerId);
+            renderLayers();
+        }
+
+
+        function renderLayers() {
+            layersContainerEl.innerHTML = '';
+
+            layers.forEach(layer => {
+                const layerEl = document.createElement('div');
+                layerEl.className = 'layer';
+                layerEl.dataset.layerId = layer.id;
+
+                layerEl.innerHTML = `
+                    <div class="layer-header">
+                        <span class="layer-title">层级 ${layer.id}</span>
+                        <span class="delete-layer" data-layer-id="${layer.id}">× 删除</span>
+                    </div>
+                    <div class="models-in-layer" data-layer-id="${layer.id}">
+                        ${layer.models.length === 0 ? '<div style="color: #999; width: 100%; text-align: center;">拖拽模型到此处</div>' : ''}
+                    </div>
+                `;
+
+                const modelsInLayerEl = layerEl.querySelector('.models-in-layer');
+                modelsInLayerEl.addEventListener('dragover', handleDragOver);
+                modelsInLayerEl.addEventListener('drop', handleDrop);
+
+                const deleteLayerBtn = layerEl.querySelector('.delete-layer');
+                deleteLayerBtn.addEventListener('click', () => {
+                    deleteLayer(layer.id);
+                });
+
+                layer.models.forEach((model, index) => {
+                    const modelEl = document.createElement('div');
+                    modelEl.className = 'model-in-layer';
+                    modelEl.dataset.modelIndex = index;
+
+                    modelEl.innerHTML = `
+                        <div>${model.name}</div>
+                        <span class="delete-model-in-layer" data-layer-id="${layer.id}" data-model-index="${index}">×</span>
+                    `;
+
+                    const deleteBtn = modelEl.querySelector('.delete-model-in-layer');
+                    deleteBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        deleteModelFromLayer(layer.id, index);
+                    });
+
+                    modelsInLayerEl.appendChild(modelEl);
+                });
+
+                layersContainerEl.appendChild(layerEl);
+            });
+        }
+
+        function deleteModelFromLayer(layerId, modelIndex) {
+            const layer = layers.find(l => l.id === layerId);
+            if (layer) {
+                layer.models.splice(modelIndex, 1);
+                renderLayers();
+            }
+        }
+
+        // 拖拽相关函数
+        function handleDragStart(e) {
+            e.dataTransfer.setData('text/plain', e.target.dataset.index);
+            e.target.classList.add('dragging');
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            const modelIndex = e.dataTransfer.getData('text/plain');
+            const layerId = parseInt(e.currentTarget.dataset.layerId);
+
+            const layer = layers.find(l => l.id === layerId);
+            if (layer && modelIndex >= 0 && modelIndex < models.length) {
+                layer.models.push({
+                    name: models[modelIndex].name,
+                    url: models[modelIndex].url
+                });
+                renderLayers();
+            }
+
+            document.querySelectorAll('.model-item').forEach(item => {
+                item.classList.remove('dragging');
+            });
+        }
+
+        async function submitData() {
+            const content = userInputEl.value.trim();
+            const imageFile = imageUploadEl.files[0];
+
+            if (!content && !imageFile) {
+                alert('请输入内容或上传图片');
+                return;
+            }
+
+            const modelList = layers.map(layer => ({
+                layer: layer.id,
+                parallel: 0,
+                models: layer.models.map(model => ({
+                    modelName: model.name,
+                    modelUrl: model.url,
+                    weight: 1
+                }))
+            }));
+
+            let imageBase64 = '';
+            if (imageFile) {
+                imageBase64 = await fileToBase64(imageFile);
+            }
+
+            // 构建请求数据
+            const requestData = {
+                image: imageBase64,
+                content: content,
+                modelList: modelList
+            };
+
+            console.log('准备发送的数据:', requestData);
+
+            // 发送到后端
+            try {
+                const response = await fetch('http://localhost:3000/api', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestData)
+                });
+
+                const result = await response.json();
+                console.log('服务器响应:', result);
+                alert('提交成功!');
+            } catch (error) {
+                console.error('提交失败:', error);
+                alert('提交失败: ' + error.message);
+            }
+        }
+
+        // 文件转base64
+        function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => resolve(reader.result.split(',')[1]);
+                reader.onerror = error => reject(error);
+            });
+        }
+
+        // 事件监听
+        addModelBtn.addEventListener('click', () => {
+            modelNameEl.value = '';
+            modelUrlEl.value = '';
+            modelDescEl.value = '';
+            addModelModal.style.display = 'flex';
+        });
+
+        addLayerBtn.addEventListener('click', addLayer);
+
+        submitBtn.addEventListener('click', submitData);
+
+        document.querySelectorAll('.close-modal').forEach(btn => {
+            btn.addEventListener('click', () => {
+                addModelModal.style.display = 'none';
+                modelDetailModal.style.display = 'none';
+            });
+        });
+
+        cancelAddModelBtn.addEventListener('click', () => {
+            addModelModal.style.display = 'none';
+        });
+
+        closeDetailModalBtn.addEventListener('click', () => {
+            modelDetailModal.style.display = 'none';
+        });
+
+        saveModelBtn.addEventListener('click', () => {
+            const name = modelNameEl.value.trim();
+            const url = modelUrlEl.value.trim();
+            const description = modelDescEl.value.trim();
+
+            if (!name || !url || !description) {
+                alert('请填写所有字段');
+                return;
+            }
+
+            addModel(name, url, description);
+            addModelModal.style.display = 'none';
+        });
+
+        // 点击模态框外部关闭
+        window.addEventListener('click', (e) => {
+            if (e.target === addModelModal) {
+                addModelModal.style.display = 'none';
+            }
+            if (e.target === modelDetailModal) {
+                modelDetailModal.style.display = 'none';
+            }
+        });
+
+        initPage();
+    </script>
+</body>
+
+</html>
